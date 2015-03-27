@@ -42,7 +42,8 @@ Kf     = Lf*Lf';
 % configure input kernel from input arguments
 if dg % kss
   Kx = feval(cov{:}, hyp((lmaxi+1):end), x);
-  K  = (M*Kf*M').*Kx;
+  %K  = (M*Kf*M').*Kx;
+  K  = (Mte*Kf*Mte').*Kx;
   K  = diag(K);
 else
   if xeqz % K 
@@ -54,8 +55,9 @@ else
         error('Covariance function not initialized for testing'); 
     end
     Kx = feval(cov{:}, hyp((lmaxi+1):end), x, z);
-    K  = (Mte*Kf*M').*Kx;
-    K  = K'; % transpose because gpml expects K(train,test)
+    %K  = (Mte*Kf*M').*Kx;
+    %K  = K'; % transpose because gpml expects K(train,test)
+    K  = (M*Kf*Mte').*Kx;
   end
 end
 

@@ -15,6 +15,7 @@ ones(10)*ones(10); % stupid hack to get matlab to work properly
 %# function covGrid
 %# function infGrid
 %# function sp_infGrid
+%# function sp_covMTL
 
 T   = size(Y,2);  % number of tasks
 
@@ -31,6 +32,10 @@ try opt.debug;   catch, opt.debug   = false;end
 %     opt.inf       = @(varargin) infGrid(varargin{:},gopt);
 % end
 
+if iscell(opt.cov) && any(regexp(func2str(opt.cov{1}),'sp_covMTL'))
+   sp_covMTL('init', length(opt.hyp0.cov)); 
+end    
+    
 Hyp   = zeros(T,length(unwrap(hyp0)));
 NLML  = zeros(T,1); 
 DNLML = zeros(length(unwrap(hyp0)),T);

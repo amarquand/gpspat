@@ -6,6 +6,7 @@ try opt.type2ml;    catch, opt.type2ml = false; end
 try opt.usecluster; catch, opt.usecluster = true; end
 try opt.walltime;   catch, opt.walltime = 300; end
 try opt.memory;     catch, opt.memory = 100*1024^2; end
+try opt.debug;      catch, opt.debug = false; end
 
 D   = size(X,2);
 T   = size(Y,2);  % number of tasks
@@ -50,6 +51,7 @@ if opt.usecluster
 else % run sequentially
     nlmls = cell(Njobs,1); dnlmls = cell(Njobs,1); hyps = cell(Njobs,1); 
     for n = 1:Njobs
+        if opt.debug, fprintf('running job %d of %d...\n',n,Njobs'); end
         [nlmls{n},dnlmls{n},hyps{n}] = sp_gp_cluster_job(hypb{n},Xb{n},yb{n},optb{n});
     end
 end

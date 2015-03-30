@@ -1,16 +1,19 @@
-function K = sp_covMTL(cov, M, hyp, x, z, i)
+function K = sp_covMTL(cov, param, hyp, x, z, i)
 
 % MTL covariance function 
 % 
 % usage:
 %   sp_covMTL('init', number_of_hyperparameters);
-%   sp_covMTL('initte', task_indicator_test);
-%   sp_covMTL(input_covariance_function, task_indicator, ...); 
+%   sp_covMTL(input_covariance_function, task_indicator(s), ...); 
 %
-% takes a vector of hyperparameters:  
+% the task indicators can be specified either as matrix M (training) or as
+% a cell array {Mtr, Mte} (testing)
+%
+% this function requires a vector of hyperparameters:  
 %   hyp = [ ell; covp ]
+%
 % where ell is the lower diagonal of L = chol(Kf)' and covp is a vector of
-% parameters for the input covariance functions
+% parameters for the input covariance function (Kx)
 %
 %_________________________________________________________________________
 % Copyright (C) A Marquand 
@@ -18,11 +21,17 @@ function K = sp_covMTL(cov, M, hyp, x, z, i)
 if nargin<2, error('Not enough parameters provided.'), end
 
 persistent Nhyp;
-persistent Mte;
+%persistent Mte;
 
-if strcmp(cov,'init'), Nhyp = M; return; end
-if strcmp(cov,'inittest'), Mte = M; return; end
+if strcmp(cov,'init'), Nhyp = param; return; end
+%if strcmp(cov,'inittest'), Mte = M; return; end
 if isempty(Nhyp), error('Covariance function not initialised.'); end
+
+if iscell(param)
+    M = param{1};
+else
+    M = param;
+end
 
 if nargin<4, K = num2str(Nhyp); return; end             % report number of parameters
 if nargin<5, z = []; end                              % make sure, z exists
@@ -41,6 +50,11 @@ Kf     = Lf*Lf';
 
 % configure input kernel from input arguments
 if dg % kss
+  if iscell(param) && length(param) == 2
+      Mte = param{2};
+  else
+      error('for diag mode, a cell array {M, Mtr} is required.');
+  end
   Kx = feval(cov{:}, hyp((lmaxi+1):end), x);
   %K  = (M*Kf*M').*Kx;
   K  = (Mte*Kf*Mte').*Kx;
@@ -51,8 +65,10 @@ else
     Kx = dokron(Kx,M);
     K  = (M*Kf*M').*Kx;
   else % Ks
-    if isempty(Mte)
-        error('Covariance function not initialized for testing'); 
+    if iscell(param) && length(param) == 2
+      Mte = param{2};
+    else
+      error('for prediction, a cell array {M, Mtr} is required.');
     end
     Kx = feval(cov{:}, hyp((lmaxi+1):end), x, z);
     %K  = (Mte*Kf*M').*Kx;

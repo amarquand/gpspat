@@ -35,8 +35,6 @@ if Nalpha ~= 1 && Nalpha ~= D
 end
 
 if Nalpha == D
-    %Sigma  = diag(alpha);      % weight prior precision
-    %iSigma = diag(1./alpha);   % weight prior covariance
     Sigma  = diag(1./alpha);   % weight prior covariance
     iSigma = diag(alpha);      % weight prior precision
 else    
@@ -65,7 +63,6 @@ if nargin == 3
         for i = 1:Nalpha
             if Nalpha == D % use ARD?
                 dSigma      = zeros(D); 
-                %dSigma(i,i) = 1              % if alpha is the variance
                 dSigma(i,i) = -alpha(i)^-2;   % if alpha is the precision
             else
                 dSigma = -alpha(i)^-2*eye(D);

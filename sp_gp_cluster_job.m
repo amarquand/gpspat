@@ -12,6 +12,7 @@ ones(10)*ones(10); % stupid hack to get matlab to work properly
 %# function meanPoly
 %# function meanLinear
 %# function meanConst
+%# function meanSum
 %# function covGrid
 %# function infGrid
 %# function sp_infGrid

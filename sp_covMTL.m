@@ -4,6 +4,7 @@ function K = sp_covMTL(cov, param, hyp, x, z, i)
 % 
 % usage:
 %   sp_covMTL('init', number_of_hyperparameters);
+%   sp_covMTL('taskcov', task_indicator, hyperparameters);
 %   sp_covMTL(input_covariance_function, task_indicator(s), ...); 
 %
 % the task indicators can be specified either as matrix M (training) or as
@@ -21,10 +22,8 @@ function K = sp_covMTL(cov, param, hyp, x, z, i)
 if nargin<2, error('Not enough parameters provided.'), end
 
 persistent Nhyp;
-%persistent Mte;
 
 if strcmp(cov,'init'), Nhyp = param; return; end
-%if strcmp(cov,'inittest'), Mte = M; return; end
 if isempty(Nhyp), error('Covariance function not initialised.'); end
 
 if iscell(param)
@@ -32,21 +31,22 @@ if iscell(param)
 else
     M = param;
 end
+T     = size(M,2);
+lmaxi = (T*(T+1)/2);
 
-if nargin<4, K = num2str(Nhyp); return; end             % report number of parameters
+if nargin<4,
+    if strcmp(cov,'taskcov')
+        K = taskcov(hyp,lmaxi,T); % return task covariance matrix
+    else 
+        K = num2str(Nhyp);        % report number of parameters
+    end
+    return; 
+end            
 if nargin<5, z = []; end                              % make sure, z exists
 xeqz = numel(z)==0; 
 dg   = ~iscell(z) && strcmp(z,'diag') && numel(z)>0;   % determine mode
 
-T     = size(M,2);
-lmaxi = (T*(T+1)/2);
-
-% Reconstruct chol(Kf)' and Kf
-Lf     = zeros(T);
-lf     = hyp(1:lmaxi);
-id     = tril(true(T));
-Lf(id) = lf;
-Kf     = Lf*Lf';
+[Kf,Lf,id] = taskcov(hyp,lmaxi,T);
 
 % configure input kernel from input arguments
 if dg % kss
@@ -102,4 +102,14 @@ elseif Nx*T == Nm
 else
     error('Input kernel and indicator matrix have incompatible sizes');
 end
+end
+
+function [Kf,Lf,id] = taskcov(hyp,lmaxi,T)
+
+% Reconstruct chol(Kf)' and Kf
+Lf     = zeros(T);
+lf     = hyp(1:lmaxi);
+id     = tril(true(T));
+Lf(id) = lf;
+Kf     = Lf*Lf';
 end

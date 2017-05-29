@@ -33,35 +33,30 @@ for t = 1:T
     
     if opt.type2ml
         try
-            %[hyp,nlml] = minimize(hyp, @gp, opt.maxEval, opt.inf, opt.mean, opt.cov, opt.lik, X, y);
             [hyp,nlml] = minimize(zeros(D+1,1), @blr, opt.maxEval, X, y);
             
-            % check gradients
-            fun   = @(lh)blr(lh,X,y);
-            [~,g] = blr(zeros(D+1,1),X,y);
-            gnum  = computeNumericalGradient(fun,zeros(D+1,1));
+            % % check gradients
+            % fun   = @(lh)blr(lh,X,y);
+            % [~,g] = blr(zeros(D+1,1),X,y);
+            % gnum  = computeNumericalGradient(fun,zeros(D+1,1));
         catch
             warning('Optimisation failed. Using default values');   
         end
     end
     if nargin > 4
-        %[yhat, s2] = gp(hyp,opt.inf,opt.mean,opt.cov,opt.lik, X, y, Xs, zeros(Ns,1));
         [yhat, s2] = blr(hyp, X, y, Xs);
         
         Yhat(:,t) = yhat;
         S2(:,t)   = s2;
         if nargout > 5
-            %[yhattr, s2tr] = gp(hyp,opt.inf,opt.mean,cov,opt.lik, X, y, X, zeros(N,1));
             [yhattr, s2tr] = blr(hyp, X, y, X);
             Yhattr(:,t) = yhattr;
             S2tr(:,t)   = s2tr;
         end
     else % just report marginal likelihood and derivatives
-        %[nlml, dnlml] = gp(hyp,opt.inf,opt.mean,opt.cov,opt.lik, X, y);
-        %DNLML(:,t)    = unwrap(dnlml);
-        [nlml,DNLML(:,t)] = blr(hyp, X, y);
+         [nlml,DNLML(:,t)] = blr(hyp, X, y);
     end
     
     NLML(t)  = min(nlml);
-    Hyp(t,:) = hyp';%unwrap(hyp)';
+    Hyp(t,:) = hyp';
 end

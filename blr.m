@@ -35,44 +35,58 @@ if Nalpha ~= 1 && Nalpha ~= D
 end
 
 if Nalpha == D
-    Sigma  = diag(1./alpha);   % weight prior covariance
-    iSigma = diag(alpha);      % weight prior precision
+    Sigma  = spdiags(1./alpha,0,D,D);
+    invSigma = spdiags(alpha,0,D,D);
 else    
-    Sigma  = 1./alpha*eye(D);  % weight prior covariance
-    iSigma = alpha*eye(D);     % weight prior precision
+    Sigma  = 1./alpha*speye(D);  % weight prior covariance
+    invSigma = alpha*speye(D);     % weight prior precision
 end
 
+% useful quantities
 XX = X'*X;
-A  = beta*XX + iSigma;     % posterior precision
-Q  = A\X';
-m  = beta*Q*t;             % posterior mean
+A  = beta*XX + invSigma;     % posterior precision
+S  = inv(A);                 % posterior covariance
+Q  = S*X';
+m  = beta*Q*t;               % posterior mean
+
+% compute like this for to avoid numerical overflow
+logdetA     = 2*sum(log(diag(chol(A))));
+logdetSigma = sum(log(diag(A)));            % assumes Sigma is diagonal
 
 if nargin == 3
-    nlZ = -0.5*( N*log(beta) - N*log(2*pi) - log(det(Sigma)) ...
-                 - beta*(t-X*m)'*(t-X*m) - m'*iSigma*m - log(det(A)) );
+    nlZ = -0.5*( N*log(beta) - N*log(2*pi) - logdetSigma ...
+                 - beta*(t-X*m)'*(t-X*m) - m'*invSigma*m - ...
+                 logdetA );
     
     if nargout > 1    % derivatives?
         dnlZ = zeros(size(hyp));
         b    = (eye(D) - beta*Q*X)*Q*t;
         
-        % noise precision
-        dnlZ(1) = -( N/(2*beta) - 0.5*(t'*t) + t'*X*m + beta*t'*X*b - 0.5*m'*XX*m ...
-                     - beta*b'*XX*m - b'*iSigma*m -0.5*trace(Q*X) )*beta;
+        % repeatedly computed quantities for derivatives
+        Xt  = X'*t;
+        XXm = XX*m;
+        SXt = S*Xt;
         
+        % noise precision
+        dnlZ(1) = -( N/(2*beta) - 0.5*(t'*t) + t'*X*m + beta*t'*X*b - 0.5*m'*XXm ...
+                     - beta*b'*XXm - b'*invSigma*m -0.5*trace(Q*X) )*beta;
+         
         % variance parameters
         for i = 1:Nalpha
             if Nalpha == D % use ARD?
-                dSigma      = zeros(D); 
-                dSigma(i,i) = -alpha(i)^-2;   % if alpha is the precision
+                dSigma    = sparse(i,i,-alpha(i)^-2,D,D);
+                dinvSigma = sparse(i,i,1,D,D);
             else
-                dSigma = -alpha(i)^-2*eye(D);
+                dSigma    = -alpha(i)^-2*speye(D);
+                dinvSigma = speye(D);
             end
             
-            F = -iSigma*dSigma*iSigma;
-            c = -beta*F*X'*t;
+            F = dinvSigma;
+            c = -beta*S*F*SXt;
             
-            dnlZ(i+1) = -( -0.5*trace(iSigma*dSigma) + beta*t'*X*c - beta*c'*XX*m ...
-                - c'*iSigma*m - 0.5*m'*F*m - 0.5*trace(A\F) )*alpha(i);
+            dnlZ(i+1) = -( -0.5*sum(sum(invSigma.*dSigma')) + ...
+                           beta*Xt'*c - beta*c'*XXm - c'*invSigma*m - ...
+                           0.5*m'*F*m - 0.5*trace(A\F) )*alpha(i);
         end
         post.m = m;
         post.A = A;

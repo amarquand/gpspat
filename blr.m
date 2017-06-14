@@ -51,7 +51,7 @@ m  = beta*Q*t;               % posterior mean
 
 % compute like this for to avoid numerical overflow
 logdetA     = 2*sum(log(diag(chol(A))));
-logdetSigma = sum(log(diag(A)));            % assumes Sigma is diagonal
+logdetSigma = sum(log(diag(Sigma)));            % assumes Sigma is diagonal
 
 if nargin == 3
     nlZ = -0.5*( N*log(beta) - N*log(2*pi) - logdetSigma ...
